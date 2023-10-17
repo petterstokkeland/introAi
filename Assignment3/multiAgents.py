@@ -110,6 +110,7 @@ class MinimaxAgent(MultiAgentSearchAgent):
     """
     Your minimax agent (question 2)
     """
+    
 
     def getAction(self, gameState):
         """
@@ -135,120 +136,145 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        value, action = self.max_value(gameState, 0, self.depth)
+        return action
+
+        
+        #util.raiseNotDefined()
+
+    def max_value(self, gameState, agentIndex, depth):
+        """
+    Denne metoden bestemmer den beste verdien for den maksimerende spilleren (Pacman).
+    """
+        # Sjekker om spilltilstanden er en vinnende, tapende eller maksimal dybde er nådd.
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            # Returnerer evalueringen av nåværende spilltilstand.
+            return self.evaluationFunction(gameState), None
+        # Setter en initial verdi til negativ uendelig for å finne maksimal verdi.
+        v = float("-inf")
+        best_action = None
+        # Går gjennom alle lovlige handlinger for Pacman.
+        for action in gameState.getLegalActions(agentIndex):
+            # Genererer en etterfølger spilltilstand basert på handlingen. For å kunne sjekke hvilket trekk min
+            # motstander vil gjøre.
+            successor = gameState.generateSuccessor(agentIndex, action)
+            # Kaller min_value for å få verdien av etterfølger tilstanden basert på spøkelsenes trekk.
+            value, _ = self.min_value(successor, agentIndex + 1, depth)
+            # Oppdaterer den beste verdien og tilsvarende handling hvis den nye verdien er større.
+            if value > v:
+                v = value
+                best_action = action
+        # Returnerer den beste verdien og tilsvarende handling for Pacman.
+        return v, best_action
+    
+    def min_value(self, gameState, agentIndex, depth):
+        """
+        Denne metoden bestemmer den beste verdien for den minimiserende spilleren (spøkelser).
+        """
+        # Sjekker om spilltilstanden er en vinnende, tapende eller maksimal dybde er nådd.
+        if gameState.isWin() or gameState.isLose() or depth == 0:
+            # Returnerer evalueringen av nåværende spilltilstand.
+            return self.evaluationFunction(gameState), None
+        # Setter en initial verdi til positiv uendelig for å finne minimal verdi.
+        v = float("inf")
+        best_action = None
+        # Går gjennom alle lovlige handlinger for det aktuelle spøkelset.
+        for action in gameState.getLegalActions(agentIndex):
+            # Genererer en etterfølger spilltilstand basert på handlingen. For å sjekke hvilket trekk Pacman vil utføre
+            successor = gameState.generateSuccessor(agentIndex, action)
+            # Sjekker om det aktuelle spøkelset er det siste spøkelset.
+            if gameState.getNumAgents() - 1 == agentIndex:
+                # Hvis det er det siste spøkelset, kaller max_value for Pacman og reduserer dybden.
+                value, _ = self.max_value(successor, 0, depth - 1)
+            else:
+                # Hvis det ikke er det siste spøkelset, kaller min_value for neste spøkelse.
+                value, _ = self.min_value(successor, agentIndex + 1, depth)
+            # Oppdaterer den beste verdien og tilsvarende handling hvis den nye verdien er mindre.
+            if value < v:
+                v = value
+                best_action = action
+        # Returnerer den beste verdien og tilsvarende handling for det aktuelle spøkelset.
+        return v, best_action
+
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
       Your minimax agent with alpha-beta pruning (question 3)
     """
-    def getAction(self, state):
 
+    def getAction(self, gameState):
+        """
+          Returns the minimax action using self.depth and self.evaluationFunction
+        """
+        # Initialiserer alpha og beta for alpha-beta pruning.
         a = float('-inf')
         b = float('inf')
         bestValue = float('-inf')
         bestAction = Directions.STOP
-        for action in state.getLegalActions(0):
-            newValue = self.alphaBeta(state.generateSuccessor(0, action), 0, 1, a, b)
+
+        # For hver mulige handling Pacman kan ta:
+        for action in gameState.getLegalActions(0):
+            # Genererer etterfølgerstaten etter å ha tatt handlingen.
+            newValue = self.alphaBeta(gameState.generateSuccessor(0, action), 0, 1, a, b)
+            
+            # Oppdaterer beste verdi og handling hvis den nye verdien er bedre.
             if newValue > bestValue:
                 bestValue = newValue
                 bestAction = action
+            
+            # Oppdaterer alpha-verdien.
             a = max(a, bestValue)        
         return bestAction
-    
+
     def alphaBeta(self, currentGameState, currentDepth, agentIndex, a, b):
-        if currentDepth == 0 or currentGameState.isWin() or currentGameState.isLose():
+        # Sjekker om vi har nådd maks dybde eller en terminal tilstand (vinn/tap).
+        if currentDepth == self.depth or currentGameState.isWin() or currentGameState.isLose():
             return self.evaluationFunction(currentGameState)
+        # Hvis det er Pacman's tur, kall maxValue.
         elif agentIndex == 0:
-            return self.maxValue(currentGameState, currentDepth - 1, a, b)
+            return self.maxValue(currentGameState, currentDepth, a, b)
+        # Hvis det er et spøkelse's tur, kall minValue.
         else:
-            return self.minValue(currentGameState, currentDepth - 1, agentIndex, a, b)
+            return self.minValue(currentGameState, currentDepth, agentIndex, a, b)
 
-        
-    def maxValue(self, gameState, depth, a, b):
-        if gameState.isWin() or gameState.isLose():
-            return self.evaluationFunction(gameState)
-
+    def maxValue(self, currentGameState, currentDepth, a, b):
         value = float('-inf')
-        for action in gameState.getLegalActions(0):
-            successor = gameState.generateSuccessor(0, action)
-            value = max(value, self.alphaBeta(successor, depth, 1, a, b))
+        # For hver mulige handling Pacman kan ta:
+        for action in currentGameState.getLegalActions(0):
+            # Genererer etterfølgerstaten etter å ha tatt handlingen.
+            nextGameState = currentGameState.generateSuccessor(0, action)
+            value = max(value, self.alphaBeta(nextGameState, currentDepth, 1, a, b))
+            
+            # Hvis verdien er større enn beta, avbryt og returner verdien.
             if value > b:
                 return value
+            
+            # Oppdaterer alpha-verdien.
             a = max(a, value)
         return value 
 
-    def minValue(self, gameState, depth, agentIndex, a, b):
-        if gameState.isWin() or gameState.isLose() or depth == 0:
-            return self.evaluationFunction(gameState)
-        
+    def minValue(self, currentGameState, currentDepth, agentIndex, a, b):
         value = float('inf')
-        for action in gameState.getLegalActions(agentIndex):
-            successor = gameState.generateSuccessor(agentIndex, action)
-            if agentIndex == gameState.getNumAgents() - 1: 
-                value = min(value, self.alphaBeta(successor, depth + 1, 0, a, b)) 
+        # For hver mulige handling et spøkelse kan ta:
+        for action in currentGameState.getLegalActions(agentIndex):
+            # Genererer etterfølgerstaten etter å ha tatt handlingen.
+            nextGameState = currentGameState.generateSuccessor(agentIndex, action)
+            
+            # Hvis dette er det siste spøkelset, øker vi dybden og bytter til Pacman.
+            if agentIndex == currentGameState.getNumAgents() - 1: 
+                value = min(value, self.alphaBeta(nextGameState, currentDepth+1, 0, a, b))
+            # Ellers fortsetter vi til neste spøkelse.
             else:
-                value = min(value, self.alphaBeta(successor, depth, agentIndex+1, a, b))
+                value = min(value, self.alphaBeta(nextGameState, currentDepth, agentIndex+1, a, b))
+            
+            # Hvis verdien er mindre enn alpha, avbryt og returner verdien.
             if value < a:
                 return value
+            
+            # Oppdaterer beta-verdien.
             b = min(b, value)
-        return value
-
-# class AlphaBetaAgent(MultiAgentSearchAgent):
-#     """
-#     Your minimax agent with alpha-beta pruning (question 3)
-#     """
-
-#     def getAction(self, gameState):
-#         """
-#           Returns the minimax action using self.depth and self.evaluationFunction
-#         """
-#         # *** YOUR CODE HERE ***
-
-#         a = float('-inf')
-#         b = float('inf')
-#         bestValue = float('-inf')
-#         bestAction = Directions.STOP
-#         for action in gameState.getLegalActions(0):
-#             newValue = self.alphaBeta(gameState.generateSuccessor(0, action), 0, 1, a, b)
-#             if newValue > bestValue:
-#                 bestValue = newValue
-#                 bestAction = action
-#             a = max(a, bestValue)        
-#         return bestAction
-
-
-#     def alphaBeta(self, currentGameState, currentDepth, agentIndex, a, b):
-#         if currentDepth == self.depth or currentGameState.isWin() or currentGameState.isLose():
-#             return self.evaluationFunction(currentGameState)
-#         elif agentIndex == 0:
-#             return self.maxValue(currentGameState, currentDepth, a, b)
-#         else:
-#           return self.minValue(currentGameState, currentDepth, agentIndex, a, b)
-
-
-#     def maxValue(self, currentGameState, currentDepth, a, b):
-#         value = float('-inf')
-#         for action in currentGameState.getLegalActions(0):
-#             nextGameState = currentGameState.generateSuccessor(0, action)
-#             value = max(value, self.alphaBeta(nextGameState, currentDepth, 1, a, b))
-#             if value > b:
-#                 return value
-#             a = max(a, value)
-#         return value 
-    
-    
-#     def minValue(self, currentGameState, currentDepth, agentIndex, a, b):
-#         value = float('inf')
-#         for action in currentGameState.getLegalActions(agentIndex):
-#             nextGameState = currentGameState.generateSuccessor(agentIndex, action)
-#             if agentIndex == currentGameState.getNumAgents() - 1: 
-#                 value = min(value, self.alphaBeta(nextGameState, currentDepth+1, 0, a, b))
-#             else:
-#                 value = min(value, self.alphaBeta(nextGameState, currentDepth, agentIndex+1, a, b))
-#             if value < a:
-#                 return value
-#             b = min(b, value)
-#         return value
+        return value 
+ 
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
