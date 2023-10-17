@@ -328,18 +328,7 @@ def print_sudoku_solution(solution):
 
             
 
-if __name__ == "__main__":
-    # Les inn Sudoku-brettet fra filen
-    sudoku_csp = create_sudoku_csp('veryhard.txt')
-    
-    # Løs Sudoku ved hjelp av backtracking
-    solution = sudoku_csp.backtracking_search()
-    # Skriv ut løsningen
-    if solution:
-        print_sudoku_solution(solution)
-        sudoku_csp.print_backtrack_stats()
-    else:
-        print("Ingen løsning funnet!")
+
 
 
 
