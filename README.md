@@ -1,3 +1,3 @@
 # introAi TDT4136
 
-TDT4136 introduction to Artifical Intelligens
+TDT4136 introduction to Artificial Intelligence
